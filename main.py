@@ -7,6 +7,7 @@ import numpy as np
 def runRev2():
     a1, a2, b1, b2, g1, g2, g3 = 0, 0, 0, 0, 0, 0, 0
     df = pd.read_csv('ratings_musical_Amazon.csv', names=["user", "product", "rating"])
+    df["Fairness"] = np.nan
     usersDF = pd.DataFrame(df["user"].unique(), columns=["User"])
     usersDF["Fairness"] = np.nan
     productsDF = pd.DataFrame(df["product"].unique(), columns=["Product"])
@@ -34,6 +35,17 @@ def runRev2():
             dp += abs(row["Goodness"] - mg)
             row["Goodness"] = mg
         print("Fairness")
+        for index, row in df.iterrows():
+            rating_distance = 1 - (abs(row["rating"] - productsDF[row["product"]]["Goodness"]) / 2.0)
+            user_fairness = usersDF[row["user"]]["Fairness"]
+            R = (g2 * rating_distance + g1 * user_fairness + g3) / (g1 + g2 + g3)
+
+            if R < 0.00:
+                R = 0.0
+            if R > 1.0:
+                R = 1.0
+            dp += abs(row["Fairness"] - R)
+            row["Fairness"] = R
         iter = 502
 
 def draw_graph(G):
