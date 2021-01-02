@@ -5,7 +5,7 @@ import numpy as np
 
 
 def runRev2():
-    a1, a2, b1, b2, g1, g2, g3 = 0, 0, 0, 0, 0, 0, 0
+    a1, a2, b1, b2, g1, g2, g3 = 1, 1, 1, 1, 1, 1, 1
     df = pd.read_csv('ratings_musical_Amazon.csv', names=["user", "product", "rating"])
     df["Fairness"] = np.nan
     usersDF = pd.DataFrame(df["user"].unique(), columns=["User"])
@@ -29,16 +29,16 @@ def runRev2():
             mg = (b1 * median_gvals + gtotal) / (b1 + b2 + ftotal)
 
             if mg < -1.0:
-                x = -1.0
+                mg = -1.0
             if mg > 1.0:
-                x = 1.0
+                mg = 1.0
             dp += abs(row["Goodness"] - mg)
             row["Goodness"] = mg
         print("Fairness")
         for index, row in df.iterrows():
             rating_distance = 1 - (abs(row["rating"] - productsDF[row["product"]]["Goodness"]) / 2.0)
             user_fairness = usersDF[row["user"]]["Fairness"]
-            R = (g2 * rating_distance + g1 * user_fairness + g3) / (g1 + g2 + g3)
+            R = (g2 * rating_distance + g1 * user_fairness) / (g1 + g2 + g3)
 
             if R < 0.00:
                 R = 0.0
@@ -46,6 +46,7 @@ def runRev2():
                 R = 1.0
             dp += abs(row["Fairness"] - R)
             row["Fairness"] = R
+
         iter = 502
 
 def draw_graph(G):
