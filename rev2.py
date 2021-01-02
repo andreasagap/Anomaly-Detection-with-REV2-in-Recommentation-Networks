@@ -10,6 +10,9 @@ def runRev2():
 
     df = pd.read_csv('ratings_musical_Amazon.csv', names=["user", "product", "rating"])
     df["Reliability"] = 0
+    
+    # convert {1,2,3,4,5} ratings to {-1,-0.5,0, 0.5, 1}
+    df["rating"] = (df["rating"] - 3)/2
 
     usersDF = pd.DataFrame(df["user"].unique(), columns=["User"])
     usersDF["Fairness"] = 0
