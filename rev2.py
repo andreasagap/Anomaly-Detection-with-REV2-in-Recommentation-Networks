@@ -16,13 +16,13 @@ def runRev2():
     usersDF["Fairness"] = 0
 
     # get only 10 first users
-    usersDF = usersDF[:10]
-
-    # list of user ids
-    list_of_users = usersDF["User"].tolist()
-
-    # get ratings only for these specific group of users
-    df = df[df['user'].isin(list_of_users)]
+    # usersDF = usersDF[:100]
+    #
+    # # list of user ids
+    # list_of_users = usersDF["User"].tolist()
+    #
+    # # get ratings only for these specific group of users
+    # df = df[df['user'].isin(list_of_users)]
 
     # create products dataframe
     productsDF = pd.DataFrame(df["product"].unique(), columns=["Product"])
@@ -32,8 +32,10 @@ def runRev2():
 
     iter = 0
 
-    while iter < 500:
-
+    while iter < 50:
+        du = 0
+        dp = 0
+        dr = 0
         print("Epoch %d" % iter)
 
         mf = usersDF['Fairness'].sum() / len(usersDF)
@@ -57,8 +59,9 @@ def runRev2():
             if gp > 1.0:
                 gp = 1.0
 
+            dp += abs(productsDF.loc[index, 'Goodness'] - gp)
             productsDF.loc[index, 'Goodness'] = gp
-        # print(productsDF)
+
 
         # FAIRNESS
         for index, row in usersDF.iterrows():
@@ -72,9 +75,8 @@ def runRev2():
                 fu = 0.0
             if fu > 1.0:
                 fu = 1.0
-
+            du += abs(usersDF.loc[index, 'Fairness'] - fu)
             usersDF.loc[index, 'Fairness'] = fu
-        # print(usersDF.sort_values(by = ["Fairness"], ascending=True))
 
         # RELIABILITY
         for index, row in df.iterrows():
@@ -89,10 +91,12 @@ def runRev2():
                 r_up = 0.0
             if r_up > 1.0:
                 r_up = 1.0
-
+            dr += abs(df.loc[index, 'Reliability'] - r_up)
             df.loc[index, 'Reliability'] = r_up
 
         iter += 1
+        if du < 0.01 and dp < 0.01 and dr < 0.01:
+            break
 
     print(usersDF.sort_values(by=["Fairness"], ascending=True))
 
@@ -131,17 +135,6 @@ def createGraph():
     for (index, row) in df.iterrows():
         G.add_edge(row[0], row[1], weight=row[2])
     draw_graph(G)
-
-if __name__ == '__main__':
-    runRev2()
-
-
-
-
-
-
-
-
 
 
 if __name__ == '__main__':
