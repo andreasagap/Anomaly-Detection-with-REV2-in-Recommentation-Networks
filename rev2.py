@@ -38,6 +38,7 @@ def runRev2():
         mf = usersDF['Fairness'].sum() / len(usersDF)
         mg = productsDF['Goodness'].sum() / len(productsDF)
 
+        # GOODNESS
         for index, row in productsDF.iterrows():
 
             r_up = df.loc[df['product'] == row["Product"]]["Reliability"].tolist()
@@ -58,6 +59,7 @@ def runRev2():
             productsDF.loc[index, 'Goodness'] = gp
         print(productsDF)
 
+        # FAIRNESS
         for index, row in usersDF.iterrows():
 
             r_up = df.loc[df['user'] == row["User"]]["Reliability"].sum()
@@ -73,13 +75,14 @@ def runRev2():
             usersDF.loc[index, 'Fairness'] = fu
         print(usersDF)
 
+        # RELIABILITY
         for index, row in df.iterrows():
 
             fu = float(usersDF.loc[usersDF['User'] == row["user"]]["Fairness"])
             gp = float(productsDF.loc[productsDF['Product'] == row["product"]]["Goodness"])
             score = row["rating"]
 
-            r_up = (g1*fu + g2*(1 - abs(score-gp)/2))/g1+g2
+            r_up = (g1*fu + g2*(1 - abs(score-gp)/2)) / (g1+g2)
 
             if r_up < 0.00:
                 r_up = 0.0
