@@ -6,7 +6,13 @@ import matplotlib.pyplot as plt
 def runRev2():
     a1, a2, b1, b2, g1, g2, g3 = 1, 1, 1, 1, 1, 1, 1
 
-    df = pd.read_csv('ratings_musical_Amazon.csv', names=["user", "product", "rating"])
+    #df = pd.read_csv('ratings_musical_Amazon.csv', names=["user", "product", "rating"])
+
+    df = pd.read_csv('amazonWithoutUsersOneTime.csv', names=["user", "product", "rating"])
+    # print("Network has %d nodes" % (len(df["user"].index)))
+    # df = df[df.groupby('user').user.transform(len) > 14]
+    # df.to_csv(r'amazonWithoutUsersOneTime.csv', index=False, header=False)
+    # print("Network has %d nodes" % (len(df["user"].index)))
     df["Reliability"] = 0
 
     # convert {1,2,3,4,5} ratings to {-1,-0.5,0, 0.5, 1}
@@ -16,13 +22,13 @@ def runRev2():
     usersDF["Fairness"] = 0
 
     # get only 10 first users
-    # usersDF = usersDF[:100]
+    #usersDF = usersDF[:5000]
     #
     # # list of user ids
-    # list_of_users = usersDF["User"].tolist()
+    #list_of_users = usersDF["User"].tolist()
     #
-    # # get ratings only for these specific group of users
-    # df = df[df['user'].isin(list_of_users)]
+    # get ratings only for these specific group of users
+    #df = df[df['user'].isin(list_of_users)]
 
     # create products dataframe
     productsDF = pd.DataFrame(df["product"].unique(), columns=["Product"])
@@ -95,11 +101,16 @@ def runRev2():
             df.loc[index, 'Reliability'] = r_up
 
         iter += 1
+        print("Du %f Dp %f Dr %f" % (du,dp,dr))
         if du < 0.01 and dp < 0.01 and dr < 0.01:
             break
 
-    print(usersDF.sort_values(by=["Fairness"], ascending=True))
-
+    usersDF = usersDF.sort_values(by=["Fairness"], ascending=True)
+    productsDF=productsDF.sort_values(by=["Goodness"], ascending=False)
+    df=df.sort_values(by=["Reliability"], ascending=False)
+    productsDF.to_csv (r'products.csv', index = False, header=True)
+    usersDF.to_csv (r'users.csv', index = False, header=True)
+    df.to_csv (r'ratings.csv', index = False, header=True)
 
 def draw_graph(G):
     plt.figure()
