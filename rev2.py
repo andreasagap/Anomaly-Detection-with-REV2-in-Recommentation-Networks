@@ -51,6 +51,10 @@ def runRev2():
     print("Network has %d nodes and %d products" % (len(usersDF.index), len(productsDF.index)))
 
     iter = 0
+    
+    DR = []
+    DP = []
+    DU = []
 
     while iter < 50:
         du = 0
@@ -114,6 +118,11 @@ def runRev2():
             df.loc[index, 'Reliability'] = r_up
 
         iter += 1
+        
+        DR.append(dr)
+        DU.append(du)
+        DP.append(dp)
+        
         print("Du %f Dp %f Dr %f" % (du, dp, dr))
         if du < 0.01 and dp < 0.01 and dr < 0.01:
             break
@@ -124,7 +133,19 @@ def runRev2():
     productsDF.to_csv(r'products.csv', index=False, header=True)
     usersDF.to_csv(r'users.csv', index=False, header=True)
     df.to_csv(r'ratings.csv', index=False, header=True)
-
+    
+    # Plot Absolute Error
+    #DR[15:], DP[15:], DU[15:]
+    
+    plt.plot(DR, color='red', label='DR')
+    plt.plot(DP, color='blue', label='DP')
+    plt.plot(DU, color='black', label='DU')
+    plt.legend((DR,DP,DU), ('DR','DP','DU'))
+    plt.legend(loc=1, prop={'size': 20})
+    plt.xlabel('Epochs')
+    plt.ylabel('Value')
+    plt.title('Absolute Error of DR, DP, DU')
+    plt.show()
 
 def draw_graph(G):
     plt.figure()
