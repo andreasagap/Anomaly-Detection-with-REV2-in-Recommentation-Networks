@@ -11,15 +11,22 @@ from networkx.algorithms import bipartite
 
 df = pd.read_csv('amazonWithoutUsersOneTime.csv', names=["user", "product", "rating"])
 
+# Select 10 users with the lowest fairness and collect their reviews
+usersDF = usersDF.head(10)
+users = usersDF['User'].tolist()
+df2 = pd.DataFrame(columns = df.columns)
+for i in range(10):
+    df2 = df2.append(df[df['user'] == users[i]])
+
 G = nx.Graph()
-users = df["user"].unique()
-products = df["product"].unique()
+users = df2["user"].unique()
+products = df2["product"].unique()
 for u in users:
     G.add_node(u, s="o", bipartite=0)
 for p in products:
     G.add_node(p, s="^", bipartite=1)
 
-for (index, row) in df.iterrows():
+for (index, row) in df2.iterrows():
     G.add_edge(row[0], row[1], weight=row[2])
     
 def set_node_community(G, communities):
@@ -91,5 +98,12 @@ nx.draw_networkx(
         edge_color=internal_color,
         with_labels=False)
 
-
 plt.show()
+
+# Select biggest community
+biggest_community = communities[0]
+
+# Exctract users from biggest community
+clique_users_list = []
+for x in biggest_community:
+    clique_users_list.append(x)
