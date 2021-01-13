@@ -2,12 +2,14 @@ import networkx as nx
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from find_communities import findCommunities
 
-def savePlots(DR, DP, DU,title,iter):
+
+def savePlots(DR, DP, DU, title, iter):
     # Plot Absolute Error
     plt.figure()
     plt.subplot(211)
-    plt.subplots_adjust(top=1,bottom=0.5,hspace=1)
+    plt.subplots_adjust(top=1, bottom=0.5, hspace=1)
     plt.plot(DR, color='red', label='DR')
     plt.plot(DP, color='blue', label='DP')
     plt.plot(DU, color='black', label='DU')
@@ -17,48 +19,39 @@ def savePlots(DR, DP, DU,title,iter):
     plt.ylabel('Value')
     plt.title('Absolute Error of DR, DP, DU')
 
-    close = int(iter/2)
+    close = int(iter / 2)
     plt.subplot(212)
     plt.plot(DR[close:], color='red', label='DR')
     plt.plot(DP[close:], color='blue', label='DP')
     plt.plot(DU[close:], color='black', label='DU')
-    plt.xticks(np.arange(0, iter-close, step=1),np.arange(close, iter, step=1))
+    plt.xticks(np.arange(0, iter - close, step=1), np.arange(close, iter, step=1))
     plt.xlabel('Epochs')
     plt.ylabel('Value')
     plt.title('Zoomed In')
     plt.tight_layout()
-    plt.savefig(title+'.png')
+    plt.savefig(title + '.png')
 
 
 def runRev2():
-
     params = []
     params.append([0, 0, 0, 1])
-    params.append([1, 1, 1, 1])
-    params.append([0, 0, 1, 1])
-    params.append([0, 0, 1, 0])
-    params.append([1, 0, 0, 1])
-    params.append([0, 1, 1, 0])
-    #df = pd.read_csv('ratings_musical_Amazon.csv', names=["user", "product", "rating"])
 
-    df = pd.read_csv('amazonWithoutUsersOneTime.csv', names=["user", "product", "rating"])
-    # print("Network has %d nodes" % (len(df["user"].index)))
-    # active = True
-    # numberUser = 0
-    # numberProduct = 0
-    # while active:
-    #     df = df[df.groupby('product').product.transform(len) > 9]
-    #     # df = df[df.groupby('product').product.transform(len) < 6]
-    #     df = df[df.groupby('user').user.transform(len) > 3]
-    #     print("Network has %d nodes and %d products" % (numberUser, numberProduct))
-    #
-    #     if numberUser != len(df["user"].unique()) or numberProduct != len(df["product"].unique()):
-    #         numberUser = len(df["user"].unique())
-    #         numberProduct = len(df["product"].unique())
-    #     else:
-    #         active = False
+    df = pd.read_csv('ratings_musical_Amazon.csv', names=["user", "product", "rating"])
 
-    #df.to_csv(r'amazonWithoutUsersOneTime.csv', index=False, header=False)
+    print("Network has %d nodes" % (len(df["user"].index)))
+    active = True
+    numberUser = 0
+    numberProduct = 0
+    while active:
+        df = df[df.groupby('product').product.transform(len) > 9]
+        df = df[df.groupby('user').user.transform(len) > 3]
+        if numberUser != len(df["user"].unique()) or numberProduct != len(df["product"].unique()):
+            numberUser = len(df["user"].unique())
+            numberProduct = len(df["product"].unique())
+        else:
+            active = False
+
+    df.to_csv(r'amazonWithoutUsersOneTime.csv', index=False, header=False)
     print("Network has %d nodes" % (len(df["user"].index)))
     df["Reliability"] = 0
 
@@ -67,15 +60,6 @@ def runRev2():
 
     usersDF = pd.DataFrame(df["user"].unique(), columns=["User"])
     usersDF["Fairness"] = 0
-
-    # get only 10 first users
-    # usersDF = usersDF[:5000]
-    #
-    # # list of user ids
-    # list_of_users = usersDF["User"].tolist()
-    #
-    # get ratings only for these specific group of users
-    # df = df[df['user'].isin(list_of_users)]
 
     # create products dataframe
     productsDF = pd.DataFrame(df["product"].unique(), columns=["Product"])
@@ -161,7 +145,7 @@ def runRev2():
             DR.append(dr)
             DU.append(du)
             DP.append(dp)
-        
+
             print("Du %f Dp %f Dr %f" % (du, dp, dr))
             if du < 0.01 and dp < 0.01 and dr < 0.01:
                 break
@@ -170,7 +154,7 @@ def runRev2():
         productsDF = productsDF.sort_values(by=["Goodness"], ascending=False)
         df = df.sort_values(by=["Reliability"], ascending=False)
         title = ','.join(str(x) for x in p)
-        f.write("Params: "+title)
+        f.write("Params: " + title)
         f.write("\n")
         f.write("DU: " + ','.join(str(x) for x in DU))
         f.write("\n")
@@ -180,19 +164,16 @@ def runRev2():
         f.write("\n")
         f.write("Epoch: " + str(int(iter - 1)))
         f.write("\n-------------------END-------------------\n")
-        savePlots(DR,DP,DU,title,iter)
+        savePlots(DR, DP, DU, title, iter)
 
-        productsDF.to_csv(r'products-'+title+'.csv', index=False, header=True)
-        usersDF.to_csv(r'users-'+title+'.csv', index=False, header=True)
-        df.to_csv(r'ratings-'+title+'.csv', index=False, header=True)
-    
+        productsDF.to_csv(r'products-' + title + '.csv', index=False, header=True)
+        usersDF.to_csv(r'users-' + title + '.csv', index=False, header=True)
+        df.to_csv(r'ratings-' + title + '.csv', index=False, header=True)
+
     f.close()
-    
 
 
-
-def draw_graph(G):
-    plt.figure()
+def saveGraphinGexf(G):
     pos = nx.spring_layout(G)
     edges = G.edges()
     weights = [G[u][v]['weight'] for u, v in edges]
@@ -207,9 +188,6 @@ def draw_graph(G):
 
     nx.draw_networkx_edges(G, pos, edgelist=edges, label=weights)
     nx.write_gexf(G, "amazon4_10.gexf")
-    plt.clf()
-    # nx.draw_networkx(G, pos,with_labels=False, edges=edges,width=weights)
-    #plt.show()
 
 
 def createGraph():
@@ -225,9 +203,21 @@ def createGraph():
 
     for (index, row) in df.iterrows():
         G.add_edge(row[0], row[1], weight=row[2])
-    draw_graph(G)
+    saveGraphinGexf(G)
 
 
 if __name__ == '__main__':
-    runRev2()
-    #createGraph()
+    print("1: Run REV2")
+    print("2: Create gexf file")
+    print("3: Find community ")
+    print("Select 1,2 or 3:")
+    option = input()
+    if str(option) == "1":
+        runRev2()
+    elif str(option) == "2":
+        createGraph()
+    else:
+        print("Enter static parameters with comma: ")
+        filename = input()
+        usersDF = pd.read_csv('users-' + filename + '.csv', names=["User", "Fairness"])
+        findCommunities(usersDF)
