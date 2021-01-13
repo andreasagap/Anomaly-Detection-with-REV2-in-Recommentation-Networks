@@ -11,13 +11,12 @@ from networkx.algorithms import bipartite
 
 df = pd.read_csv('amazonWithoutUsersOneTime.csv', names=["user", "product", "rating"])
 
-# Select 10 users with the lowest fairness and collect their reviews
-usersDF = usersDF.head(10)
-users = usersDF['User'].tolist()
+usersDF_top10 = usersDF.head(10)
+users = usersDF_top10['User'].tolist()
 df2 = pd.DataFrame(columns = df.columns)
 for i in range(10):
     df2 = df2.append(df[df['user'] == users[i]])
-
+    
 G = nx.Graph()
 users = df2["user"].unique()
 products = df2["product"].unique()
@@ -93,7 +92,33 @@ nx.draw_networkx(
 nx.draw_networkx(
         U,
         pos=users_pos,
-        node_color=node_color,
+        node_color='red',
+        edgelist=internal,
+        edge_color=internal_color,
+        with_labels=False)
+
+G_full = nx.Graph()
+users = df["user"].unique()
+products = df["product"].unique()
+for u in users:
+    G_full.add_node(u, s="o", bipartite=0)
+for p in products:
+    G_full.add_node(p, s="^", bipartite=1)
+
+for (index, row) in df.iterrows():
+    G.add_edge(row[0], row[1], weight=row[2])
+
+# Distinguish between two sets
+top_nodes = {n for n, d in G_full.nodes(data=True) if d["bipartite"] == 0}
+bottom_nodes = set(G_full) - top_nodes
+
+# Get User set
+U_full = bipartite.projected_graph(G_full, top_nodes)
+
+nx.draw_networkx(
+        U_full,
+        pos=users_pos,
+        node_color='blue',
         edgelist=internal,
         edge_color=internal_color,
         with_labels=False)
