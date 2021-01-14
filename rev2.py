@@ -33,17 +33,24 @@ def savePlots(DR, DP, DU, title, iter):
 
 
 def runRev2():
+
+    # smoothing parameters initialization
     params = []
     params.append([0, 0, 0, 1])
 
+    # read Amazon Dataset
     df = pd.read_csv('ratings_musical_Amazon.csv', names=["user", "product", "rating"])
-
     print("Network has %d nodes" % (len(df["user"].index)))
+
+    # graph sampling based on conditions for reasons of simplicity
     active = True
     numberUser = 0
     numberProduct = 0
+    # iterative pruning of nodes
     while active:
+        # remove products with less than 10 reviews
         df = df[df.groupby('product').product.transform(len) > 9]
+        # remove users with out-degree less than 4
         df = df[df.groupby('user').user.transform(len) > 3]
         if numberUser != len(df["user"].unique()) or numberProduct != len(df["product"].unique()):
             numberUser = len(df["user"].unique())
@@ -51,6 +58,7 @@ def runRev2():
         else:
             active = False
 
+    # save new graph to csv
     df.to_csv(r'amazonWithoutUsersOneTime.csv', index=False, header=False)
     print("Network has %d nodes" % (len(df["user"].index)))
     df["Reliability"] = 0
@@ -58,10 +66,11 @@ def runRev2():
     # convert {1,2,3,4,5} ratings to {-1,-0.5,0, 0.5, 1}
     df["rating"] = (df["rating"] - 3) / 2
 
+    # create users DataFrame
     usersDF = pd.DataFrame(df["user"].unique(), columns=["User"])
     usersDF["Fairness"] = 0
 
-    # create products dataframe
+    # create products DataFrame
     productsDF = pd.DataFrame(df["product"].unique(), columns=["Product"])
     productsDF["Goodness"] = 0
 
@@ -73,11 +82,14 @@ def runRev2():
     f.write("\n")
 
     for p in params:
+
+        # parameter initialization
         a1, b1, g1, g2 = p[0], p[1], p[2], p[3]
 
         DR = []
         DP = []
         DU = []
+
         iter = 0
         while iter < 50:
             du = 0
@@ -85,74 +97,103 @@ def runRev2():
             dr = 0
             print("Epoch %d" % iter)
 
+            # compute average Fairness & Goodness
             mf = usersDF['Fairness'].sum() / len(usersDF)
             mg = productsDF['Goodness'].sum() / len(productsDF)
 
-            # GOODNESS
+            # GOODNESS computation
             for index, row in productsDF.iterrows():
 
+                # rating reliability
                 r_up = df.loc[df['product'] == row["Product"]]["Reliability"].tolist()
-
+                # rating score
                 score_up = df.loc[df['product'] == row["Product"]]["rating"].tolist()
 
+                # inner product of reliability and rating score vectors
                 sum_up = sum([a * b for a, b in zip(r_up, score_up)])
 
+                # in-degree calculation for product nodes
                 in_p = df.loc[df['product'] == row["Product"]]["rating"].count()
 
+                # goodness formula
                 gp = (sum_up + b1 * mg) / (in_p + b1)
 
+                # normalization for values out of bounds
                 if gp < -1.0:
                     gp = -1.0
                 if gp > 1.0:
                     gp = 1.0
 
+                # update difference
                 dp += abs(productsDF.loc[index, 'Goodness'] - gp)
+                # update goodness
                 productsDF.loc[index, 'Goodness'] = gp
 
-            # FAIRNESS
+            # FAIRNESS computation
             for index, row in usersDF.iterrows():
 
+                # rating reliability
                 r_up = df.loc[df['user'] == row["User"]]["Reliability"].sum()
+                # out-degree of user nodes
                 out = df.loc[df['user'] == row["User"]]["Reliability"].count()
 
+                # fairness formula
                 fu = (r_up + a1 * mf) / (out + a1)
 
+                # normalization for values out of bounds
                 if fu < 0.00:
                     fu = 0.0
                 if fu > 1.0:
                     fu = 1.0
+
+                # update differences
                 du += abs(usersDF.loc[index, 'Fairness'] - fu)
+                # update fairness
                 usersDF.loc[index, 'Fairness'] = fu
 
-            # RELIABILITY
+            # RELIABILITY computation
             for index, row in df.iterrows():
 
+                # get current value for user's fairness
                 fu = float(usersDF.loc[usersDF['User'] == row["user"]]["Fairness"])
+                # get current value of product's goodness
                 gp = float(productsDF.loc[productsDF['Product'] == row["product"]]["Goodness"])
+                # get rating score
                 score = row["rating"]
 
+                # reliability computation
                 r_up = (g1 * fu + g2 * (1 - abs(score - gp) / 2)) / (g1 + g2)
 
+                # normalization for values out of bounds
                 if r_up < 0.00:
                     r_up = 0.0
                 if r_up > 1.0:
                     r_up = 1.0
+
+                # update differences
                 dr += abs(df.loc[index, 'Reliability'] - r_up)
+                # update reliability score
                 df.loc[index, 'Reliability'] = r_up
 
             iter += 1
 
+            # save Mean Absolute Error for each iteration
             DR.append(dr)
             DU.append(du)
             DP.append(dp)
 
             print("Du %f Dp %f Dr %f" % (du, dp, dr))
+
+            # convergence condition
             if du < 0.01 and dp < 0.01 and dr < 0.01:
                 break
 
+        # ascending sorting of the results
         usersDF = usersDF.sort_values(by=["Fairness"], ascending=True)
         productsDF = productsDF.sort_values(by=["Goodness"], ascending=False)
         df = df.sort_values(by=["Reliability"], ascending=False)
+
+        # save results to csv
         title = ','.join(str(x) for x in p)
         f.write("Params: " + title)
         f.write("\n")
@@ -164,8 +205,11 @@ def runRev2():
         f.write("\n")
         f.write("Epoch: " + str(int(iter - 1)))
         f.write("\n-------------------END-------------------\n")
+
+        # save plots
         savePlots(DR, DP, DU, title, iter)
 
+        # create results DataFrame for Goodness, Fairness & Reliability
         productsDF.to_csv(r'products-' + title + '.csv', index=False, header=True)
         usersDF.to_csv(r'users-' + title + '.csv', index=False, header=True)
         df.to_csv(r'ratings-' + title + '.csv', index=False, header=True)
